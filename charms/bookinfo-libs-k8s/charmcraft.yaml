@@ -1,0 +1,36 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: bookinfo-libs-k8s
+type: charm
+summary: Shared libraries for Bookinfo charms
+description: |
+  This charm serves as a library repository for the Bookinfo
+  application charms. It contains shared libraries used across
+  all Bookinfo microservice charms (details, ratings, reviews,
+  and productpage).
+  
+  This charm itself does not deploy any workload - it exists
+  solely to publish and maintain shared libraries via Charmhub.
+
+links:
+  documentation: https://github.com/adhityaravi/bookinfo-k8s-charm
+  source: https://github.com/adhityaravi/bookinfo-k8s-charm
+  issues: https://github.com/adhityaravi/bookinfo-k8s-charm/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+platforms:
+  ubuntu@22.04:amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+    override-build: |
+      craftctl default
+      git -C ../../ describe --always > $CRAFT_PART_INSTALL/version
