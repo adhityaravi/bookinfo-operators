@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 LIBID = "bookinfo_service_v0"
 LIBAPI = 0
-LIBPATCH = 1
+LIBPATCH = 3
 
 
 class BookinfoServiceProvider(Object):
@@ -60,6 +60,14 @@ class ServiceUrlChangedEvent(EventBase):
     def __init__(self, handle, url: Optional[str]):
         super().__init__(handle)
         self.url = url
+    
+    def snapshot(self):
+        """Save event data for persistence across hook executions."""
+        return {"url": self.url}
+    
+    def restore(self, snapshot):
+        """Restore event data from snapshot."""
+        self.url = snapshot["url"]
 
 
 class BookinfoServiceConsumerEvents(ObjectEvents):

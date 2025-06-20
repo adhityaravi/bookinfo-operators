@@ -33,4 +33,6 @@ parts:
     build-snaps: [astral-uv]
     override-build: |
       craftctl default
-      git -C ../../ describe --always > $CRAFT_PART_INSTALL/version
+
+# FIXME: the current way to write the version into the version file doesnt work for the monorepo structure because of the missing .git. find a fix
+# git describe --always > $CRAFT_PART_INSTALL/version

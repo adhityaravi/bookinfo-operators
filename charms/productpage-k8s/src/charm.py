@@ -126,15 +126,15 @@ class ProductPageK8sCharm(CharmBase):
             self.unit.status = MaintenanceStatus("Waiting for container")
             return
 
-        missing_services = []
-        if not self._get_details_url():
-            missing_services.append("details")
-        if not self._get_reviews_url():
-            missing_services.append("reviews")
-        if not self._get_ratings_url():
-            missing_services.append("ratings")
+        available_services = []
+        if self._get_details_url():
+            available_services.append("details")
+        if self._get_reviews_url():
+            available_services.append("reviews")
+        if self._get_ratings_url():
+            available_services.append("ratings")
 
-        if len(missing_services) < 1:
+        if len(available_services) < 1:
             self.unit.status = WaitingStatus(f"Waiting for atleast 1 backend service relation")
             return
 
@@ -202,6 +202,10 @@ class ProductPageK8sCharm(CharmBase):
         output = self._internal_url
         if ingress_url := self._ingress.url:
             output = ingress_url
+        # FIXME: the upstream application doesnt seem to support path prefixes. 
+        # So redirecting from the microservice architecture page to the actual bookinfo 
+        # app when ingressed fails. For now simply show only the app page url when url is requested 
+        output = output + "/productpage?u=normal"
         event.set_results(
             {
                 "url": output,

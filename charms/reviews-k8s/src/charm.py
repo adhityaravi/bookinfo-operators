@@ -44,7 +44,7 @@ class ReviewsK8sCharm(CharmBase):
         self.service_provider = BookinfoServiceProvider(
             self,
             "reviews",
-            self.config["port"]
+            9080
         )
 
         # Consume ratings service
@@ -141,7 +141,7 @@ class ReviewsK8sCharm(CharmBase):
                 "reviews": {
                     "override": "replace",
                     "summary": "Reviews service",
-                    "command": "java -jar /opt/microservices/reviews-wlpcfg/app/target/app.jar " + str(self.config["port"]),
+                    "command": "/opt/ol/wlp/bin/server run defaultServer",
                     "startup": "enabled",
                     "environment": self._get_environment(),
                 }
@@ -157,9 +157,8 @@ class ReviewsK8sCharm(CharmBase):
         env = {
             "SERVICE_NAME": "reviews",
             "SERVICE_VERSION": self.config["version"],
-            "LOG_LEVEL": self.config["log-level"],
             "LOG_DIR": "/tmp/logs",
-            "PORT": str(self.config["port"]),
+            "SERVERDIRNAME": "reviews",
         }
 
         # Extract hostname and port from URL for upstream compatibility

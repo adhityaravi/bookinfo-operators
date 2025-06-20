@@ -34,7 +34,7 @@ class DetailsK8sCharm(CharmBase):
         self.service_provider = BookinfoServiceProvider(
             charm=self,
             relation_name="details",
-            port=self.config["port"]
+            port=9080
         )
 
     def _on_pebble_ready(self, event):
@@ -97,7 +97,7 @@ class DetailsK8sCharm(CharmBase):
                 "details": {
                     "override": "replace",
                     "summary": "Details service",
-                    "command": "ruby /opt/microservices/details.rb " + str(self.config["port"]),
+                    "command": "ruby /opt/microservices/details.rb 9080",
                     "startup": "enabled",
                     "environment": self._get_environment(),
                 }
@@ -109,10 +109,7 @@ class DetailsK8sCharm(CharmBase):
         env = {
             "SERVICE_NAME": "details",
             "SERVICE_VERSION": "v1",
-            "LOG_LEVEL": self.config["log-level"],
         }
-
-
         return env
 
 

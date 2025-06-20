@@ -24,8 +24,7 @@ class RatingsK8sCharm(CharmBase):
     def __init__(self, *args):
         super().__init__(*args)
         self._stored.set_default(
-            started=False,
-            db_connection_string=None
+            started=False
         )
 
         self.container = self.unit.get_container("ratings")
@@ -33,15 +32,11 @@ class RatingsK8sCharm(CharmBase):
         self.framework.observe(self.on.ratings_pebble_ready, self._on_pebble_ready)
         self.framework.observe(self.on.config_changed, self._on_config_changed)
         self.framework.observe(self.on.update_status, self._on_update_status)
-        
-        self.framework.observe(self.on.database_relation_joined, self._on_database_relation_joined)
-        self.framework.observe(self.on.database_relation_changed, self._on_database_relation_changed)
-        self.framework.observe(self.on.database_relation_broken, self._on_database_relation_broken)
 
         self.service_provider = BookinfoServiceProvider(
             self,
             "ratings",
-            self.config["port"]
+            9080
         )
 
     def _on_pebble_ready(self, event):
@@ -63,30 +58,6 @@ class RatingsK8sCharm(CharmBase):
         """Handle update status event."""
         self._update_status()
 
-    def _on_database_relation_joined(self, event):
-        """Handle database relation joined."""
-        logger.info("Database relation joined")
-
-    def _on_database_relation_changed(self, event):
-        """Handle database relation changed."""
-        if not event.unit:
-            return
-
-        relation_data = event.relation.data[event.unit]
-        
-        if self.config["db-type"] == "mongodb":
-            if all(k in relation_data for k in ("connection-string",)):
-                self._stored.db_connection_string = relation_data["connection-string"]
-                logger.info("Database connection established")
-                self._update_layer()
-                self._update_status()
-
-    def _on_database_relation_broken(self, event):
-        """Handle database relation broken."""
-        self._stored.db_connection_string = None
-        logger.info("Database connection broken")
-        self._update_layer()
-        self._update_status()
 
     def _update_status(self):
         """Update the charm status."""
@@ -98,9 +69,6 @@ class RatingsK8sCharm(CharmBase):
             self.unit.status = MaintenanceStatus("Waiting for container")
             return
 
-        if self.config["db-type"] == "mongodb" and not self._stored.db_connection_string:
-            self.unit.status = WaitingStatus("Waiting for database relation")
-            return
 
         try:
             service = self.container.get_service("ratings")
@@ -137,7 +105,7 @@ class RatingsK8sCharm(CharmBase):
                 "ratings": {
                     "override": "replace",
                     "summary": "Ratings service",
-                    "command": "node /opt/microservices/ratings.js " + str(self.config["port"]),
+                    "command": "node /opt/microservices/ratings.js 9080",
                     "startup": "enabled",
                     "environment": self._get_environment(),
                 }
@@ -149,13 +117,9 @@ class RatingsK8sCharm(CharmBase):
         env = {
             "SERVICE_NAME": "ratings",
             "SERVICE_VERSION": "v1",
-            "LOG_LEVEL": self.config["log-level"],
-            "DB_TYPE": self.config["db-type"],
         }
 
 
-        if self._stored.db_connection_string:
-            env["MONGO_DB_URL"] = self._stored.db_connection_string
 
         return env
 

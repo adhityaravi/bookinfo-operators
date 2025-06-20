@@ -28,7 +28,9 @@ parts:
     build-snaps: [astral-uv]
     override-build: |
       craftctl default
-      git -C ../../ describe --always > $CRAFT_PART_INSTALL/version
+
+# FIXME: the current way to write the version into the version file doesnt work for the monorepo structure because of the missing .git. find a fix
+# git describe --always > $CRAFT_PART_INSTALL/version
 
 containers:
   details:
@@ -51,13 +53,3 @@ resources:
     description: OCI image for the Details service
     upstream-source: docker.io/istio/examples-bookinfo-details-v1:1.20.3
 
-config:
-  options:
-    port:
-      default: 9080
-      description: Port on which the Details service listens
-      type: int
-    log-level:
-      default: info
-      description: Application log level (debug, info, warning, error)
-      type: string
