@@ -53,3 +53,10 @@ resources:
     description: OCI image for the Details service
     upstream-source: docker.io/istio/examples-bookinfo-details-v1:1.20.3
 
+config:
+  options:
+    log-level:
+      default: info
+      description: Application log level (debug, info, warning, error) - experimental, may not affect actual logging
+      type: string
+

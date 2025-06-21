@@ -13,7 +13,7 @@ from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider
 
 logger = logging.getLogger(__name__)
 
-RATINGS_PORT = 9080
+PORT = 9080
 
 
 class RatingsK8sCharm(CharmBase):
@@ -36,7 +36,7 @@ class RatingsK8sCharm(CharmBase):
         self.service_provider = BookinfoServiceProvider(
             self,
             "ratings",
-            9080
+            PORT
         )
 
     def _on_pebble_ready(self, event):
@@ -105,7 +105,7 @@ class RatingsK8sCharm(CharmBase):
                 "ratings": {
                     "override": "replace",
                     "summary": "Ratings service",
-                    "command": "node /opt/microservices/ratings.js 9080",
+                    "command": f"node /opt/microservices/ratings.js {PORT}",
                     "startup": "enabled",
                     "environment": self._get_environment(),
                 }
@@ -117,9 +117,9 @@ class RatingsK8sCharm(CharmBase):
         env = {
             "SERVICE_NAME": "ratings",
             "SERVICE_VERSION": "v1",
+            # Experimental: log level may not actually affect the service logging
+            "LOG_LEVEL": self.config["log-level"],
         }
-
-
 
         return env
 

@@ -13,13 +13,8 @@ from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider, Boo
 
 logger = logging.getLogger(__name__)
 
-REVIEWS_PORT = 9080
+PORT = 9080
 SUPPORTED_VERSIONS = ["v1", "v2", "v3"]
-VERSION_IMAGES = {
-    "v1": "docker.io/istio/examples-bookinfo-reviews-v1:1.20.3",
-    "v2": "docker.io/istio/examples-bookinfo-reviews-v2:1.20.3",
-    "v3": "docker.io/istio/examples-bookinfo-reviews-v3:1.20.3",
-}
 
 
 class ReviewsK8sCharm(CharmBase):
@@ -44,7 +39,7 @@ class ReviewsK8sCharm(CharmBase):
         self.service_provider = BookinfoServiceProvider(
             self,
             "reviews",
-            9080
+            PORT
         )
 
         # Consume ratings service
@@ -159,6 +154,8 @@ class ReviewsK8sCharm(CharmBase):
             "SERVICE_VERSION": self.config["version"],
             "LOG_DIR": "/tmp/logs",
             "SERVERDIRNAME": "reviews",
+            # Experimental: log level may not actually affect the service logging
+            "LOG_LEVEL": self.config["log-level"],
         }
 
         # Extract hostname and port from URL for upstream compatibility
@@ -167,7 +164,7 @@ class ReviewsK8sCharm(CharmBase):
             from urllib.parse import urlparse
             parsed = urlparse(ratings_url)
             env["RATINGS_HOSTNAME"] = parsed.hostname or "ratings"
-            env["RATINGS_SERVICE_PORT"] = str(parsed.port or 9080)
+            env["RATINGS_SERVICE_PORT"] = str(parsed.port or PORT)
             env["ENABLE_RATINGS"] = "true"
 
         # Add star color based on version

@@ -70,3 +70,7 @@ config:
         - v2: Reviews with black star ratings
         - v3: Reviews with red star ratings
       type: string
+    log-level:
+      default: info
+      description: Application log level (debug, info, warning, error) - experimental, may not affect actual logging
+      type: string

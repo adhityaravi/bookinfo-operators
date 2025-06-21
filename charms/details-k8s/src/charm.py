@@ -13,7 +13,7 @@ from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider
 
 logger = logging.getLogger(__name__)
 
-DETAILS_PORT = 9080
+PORT = 9080
 
 
 class DetailsK8sCharm(CharmBase):
@@ -34,7 +34,7 @@ class DetailsK8sCharm(CharmBase):
         self.service_provider = BookinfoServiceProvider(
             charm=self,
             relation_name="details",
-            port=9080
+            port=PORT,
         )
 
     def _on_pebble_ready(self, event):
@@ -97,7 +97,7 @@ class DetailsK8sCharm(CharmBase):
                 "details": {
                     "override": "replace",
                     "summary": "Details service",
-                    "command": "ruby /opt/microservices/details.rb 9080",
+                    "command": f"ruby /opt/microservices/details.rb {PORT}",
                     "startup": "enabled",
                     "environment": self._get_environment(),
                 }
@@ -109,6 +109,8 @@ class DetailsK8sCharm(CharmBase):
         env = {
             "SERVICE_NAME": "details",
             "SERVICE_VERSION": "v1",
+            # Experimental: log level may not actually affect the service logging
+            "LOG_LEVEL": self.config["log-level"],
         }
         return env
 
