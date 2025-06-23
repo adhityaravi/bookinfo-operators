@@ -1,0 +1,95 @@
+# Copyright 2024 Canonical Ltd.
+# See LICENSE file for licensing details.
+
+name: bookinfo-reviews-k8s
+type: charm
+summary: Reviews microservice for the Bookinfo application
+description: |
+  The Reviews microservice provides book reviews information
+  for the Bookinfo sample application. It can be deployed in
+  three versions: v1 (no ratings), v2 (black stars), v3 (red stars).
+
+links:
+  documentation: https://github.com/adhityaravi/bookinfo-k8s-charm
+  source: https://github.com/adhityaravi/bookinfo-k8s-charm
+  issues: https://github.com/adhityaravi/bookinfo-k8s-charm/issues
+
+assumes:
+  - k8s-api
+  - juju >= 3.6
+
+platforms:
+  ubuntu@22.04:amd64:
+
+parts:
+  charm:
+    source: .
+    plugin: uv
+    build-packages: [git]
+    build-snaps: [astral-uv]
+    override-build: |
+      craftctl default
+
+# FIXME: the current way to write the version into the version file doesnt work for the monorepo structure because of the missing .git. find a fix
+# git describe --always > $CRAFT_PART_INSTALL/version
+
+charm-libs:
+  - lib: istio_beacon_k8s.service_mesh
+    version: "0.5"
+
+containers:
+  bookinfo-reviews:
+    resource: bookinfo-reviews-image
+    mounts:
+      - storage: logs
+        location: /tmp/logs
+
+storage:
+  logs:
+    type: filesystem
+
+provides:
+  reviews:
+    interface: bookinfo-reviews
+  provide-cmr-mesh:
+    interface: cross_model_mesh
+    description: |
+      Allow cross-model applications to make HTTP requests to the workload of this charm via the service mesh.
+      This relation provides additional data required by the service mesh to create cross-model authorization policies
+
+requires:
+  ratings:
+    interface: bookinfo-ratings
+    limit: 1
+    optional: true
+  service-mesh:
+    limit: 1
+    interface: service_mesh
+    description: |
+      Subscribe this charm into a service mesh to create authorization policies.
+  require-cmr-mesh:
+    interface: cross_model_mesh
+    description: |
+      Allow this charms workload to make HTTP requests to cross-model applications via the service mesh.
+      This relation provides additional data required by the service mesh to create cross-model authorization policies.
+
+resources:
+  bookinfo-reviews-image:
+    type: oci-image
+    description: OCI image for the Reviews service
+    upstream-source: docker.io/istio/examples-bookinfo-reviews-v1:1.20.3
+
+config:
+  options:
+    version:
+      default: v1
+      description: |
+        Reviews service version to deploy:
+        - v1: Reviews without ratings
+        - v2: Reviews with black star ratings
+        - v3: Reviews with red star ratings
+      type: string
+    log-level:
+      default: info
+      description: Application log level (debug, info, warning, error) - experimental, may not affect actual logging
+      type: string

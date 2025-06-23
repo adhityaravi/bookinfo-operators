@@ -46,6 +46,6 @@ charmcraft publish-lib charms.bookinfo_lib.v0.bookinfo_service
 Other charms can then fetch the library:
 
 ```bash
-cd charms/productpage-k8s
+cd charms/bookinfo-productpage-k8s
 charmcraft fetch-lib charms.bookinfo_libs_k8s.v0.bookinfo_service
 ```

@@ -17,10 +17,10 @@ The Bookinfo application displays information about a book, similar to a single 
 bookinfo-k8s-charm/
 ├── charms/
 │   ├── bookinfo-libs-k8s/  # Library-only charm for shared service communication
-│   ├── details-k8s/        # Details service charm
-│   ├── productpage-k8s/    # Product page service charm 
-│   ├── ratings-k8s/        # Ratings service charm
-│   └── reviews-k8s/        # Reviews service charm
+│   ├── bookinfo-details-k8s/        # Details service charm
+│   ├── bookinfo-productpage-k8s/    # Product page service charm 
+│   ├── bookinfo-ratings-k8s/        # Ratings service charm
+│   └── bookinfo-reviews-k8s/        # Reviews service charm
 └── scripts/
     └── sync-library.sh     # Script to sync libraries during development
 ```
@@ -44,17 +44,17 @@ juju add-model bookinfo
 ```bash
 # Build all charms
 for charm in details ratings reviews productpage; do
-    cd charms/${charm}-k8s
+    cd charms/bookinfo-${charm}-k8s
     charmcraft pack
     cd ../..
 done
 
 # FIXME: fix deployment cmds
 # Deploy the charms
-juju deploy ./charms/details-k8s/details-k8s_ubuntu-22.04-amd64.charm details
-juju deploy ./charms/ratings-k8s/ratings-k8s_ubuntu-22.04-amd64.charm ratings
-juju deploy ./charms/reviews-k8s/reviews-k8s_ubuntu-22.04-amd64.charm reviews
-juju deploy ./charms/productpage-k8s/productpage-k8s_ubuntu-22.04-amd64.charm productpage
+juju deploy ./charms/bookinfo-details-k8s/bookinfo-details-k8s_ubuntu-22.04-amd64.charm details
+juju deploy ./charms/bookinfo-ratings-k8s/bookinfo-ratings-k8s_ubuntu-22.04-amd64.charm ratings
+juju deploy ./charms/bookinfo-reviews-k8s/bookinfo-reviews-k8s_ubuntu-22.04-amd64.charm reviews
+juju deploy ./charms/bookinfo-productpage-k8s/bookinfo-productpage-k8s_ubuntu-22.04-amd64.charm productpage
 ```
 
 3. Add relations between services:

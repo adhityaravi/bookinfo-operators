@@ -6,7 +6,7 @@ set -e
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 LIB_SOURCE="$REPO_ROOT/charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib"
-CHARMS=("details-k8s" "ratings-k8s" "reviews-k8s" "productpage-k8s")
+CHARMS=("bookinfo-details-k8s" "bookinfo-ratings-k8s" "bookinfo-reviews-k8s" "bookinfo-productpage-k8s")
 
 for charm in "${CHARMS[@]}"; do
     DEST="$REPO_ROOT/charms/$charm/lib/charms/bookinfo_lib"
