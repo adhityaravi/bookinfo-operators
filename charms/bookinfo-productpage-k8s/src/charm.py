@@ -13,7 +13,7 @@ from ops.pebble import LayerDict
 
 from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
 from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceConsumer
-from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer, Method, Endpoint, Policy
+from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer, Method, Endpoint, AppPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -128,7 +128,7 @@ else:
         self._mesh = ServiceMeshConsumer(
             self,
             policies=[
-                Policy(
+                AppPolicy(
                     relation="website",
                     endpoints=[
                         Endpoint(

@@ -11,7 +11,7 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingSta
 from ops.pebble import LayerDict
 
 from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider, BookinfoServiceConsumer
-from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer, Method, Endpoint, Policy
+from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer, Method, Endpoint, AppPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ class ReviewsK8sCharm(CharmBase):
         self._mesh = ServiceMeshConsumer(
             self,
             policies=[
-                Policy(
+                AppPolicy(
                     relation="reviews",
                     endpoints=[
                         Endpoint(

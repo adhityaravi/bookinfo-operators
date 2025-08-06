@@ -50,7 +50,7 @@ provides:
 Instantiate a ServiceMeshConsumer object in your charm's `__init__` method:
 
 ```python
-from charms.istio_beacon_k8s.v0.service_mesh import Method, Endpoint, Policy, ServiceMeshConsumer
+from charms.istio_beacon_k8s.v0.service_mesh import Method, Endpoint, AppPolicy, UnitPolicy, ServiceMeshConsumer
 
 class MyCharm(CharmBase):
     def __init__(self, *args):
@@ -58,17 +58,10 @@ class MyCharm(CharmBase):
         self._mesh = ServiceMeshConsumer(
             self,
             policies=[
-                Policy(
+                UnitPolicy(
                     relation="metrics",
-                    endpoints=[
-                        Endpoint(
-                            ports=[HTTP_LISTEN_PORT],
-                            methods=[Method.get],
-                            paths=["/metrics"],
-                        ),
-                    ],
                 ),
-                Policy(
+                AppPolicy(
                     relation="data",
                     endpoints=[
                         Endpoint(
@@ -83,8 +76,11 @@ class MyCharm(CharmBase):
 ```
 
 This example creates two policies:
-- When related over the `metrics` relation allow the related application to `GET` this application's `/metrics` endpoint on the specified port
-- When related over the `data` relation allow the relation application to `GET` this application's `/data` endpoint on the specified port
+- An unit policy - When related over the `metrics` relation allow the related application to access the units (via the unit/workload ip or FQDN) of this application without any restriction.
+- An app policy - When related over the `data` relation allow the relation application to `GET` this application's `/data` endpoint on the specified port (via the app/service ip or FQDN)
+
+An UnitPolicy creates a less restrictive policy that allows complete access but only to the units of the charm via individual unit addresses.
+An AppPolicy created a more fine-grained policy that can be used to control how the source application can communicate with the target application via the app address.
 
 ### Cross-Model Relations
 To request service mesh policies for cross-model relations, additional information is required.
@@ -139,7 +135,8 @@ for policy in self._mesh.mesh_info():
 
 - **Method**: Defines enum for HTTP methods (GET, POST, PUT, etc.)
 - **Endpoint**: Defines traffic endpoints with hosts, ports, methods, and paths
-- **Policy**: Defines authorization policy for the consumer
+- **AppPolicy**: Defines application level authorization policy for the consumer
+- **UnitPolicy**: Defines unit level authorization policy for the consumer
 - **MeshPolicy**: Contains complete policy information for mesh configuration
 - **CMRData**: Contains cross-model relation metadata
 """
@@ -147,7 +144,8 @@ for policy in self._mesh.mesh_info():
 import enum
 import json
 import logging
-from typing import Dict, List, Optional
+import warnings
+from typing import Dict, List, Literal, Optional, Union
 
 import httpx
 import pydantic
@@ -159,7 +157,7 @@ from ops import CharmBase, Object, RelationMapping
 
 LIBID = "3f40cb7e3569454a92ac2541c5ca0a0c"  # Never change this
 LIBAPI = 0
-LIBPATCH = 5
+LIBPATCH = 7
 
 PYDEPS = ["lightkube", "pydantic"]
 
@@ -193,12 +191,43 @@ class Endpoint(pydantic.BaseModel):
     paths: Optional[List[str]] = None
 
 
+class PolicyTargetType(str, enum.Enum):
+    """Target type for Policy classes."""
+
+    app = "app"
+    unit = "unit"
+
+
 class Policy(pydantic.BaseModel):
     """Data type for defining a policy for your charm."""
 
     relation: str
     endpoints: List[Endpoint]
     service: Optional[str] = None
+
+    def __init__(self, **data):
+        warnings.warn(
+            "Policy is deprecated. Use AppPolicy for fine-grained application-level policies "
+            "or UnitPolicy to allow access to charm units. For migration, Policy can be "
+            "directly replaced with AppPolicy.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(**data)
+
+
+class AppPolicy(pydantic.BaseModel):
+    """Data type for defining a policy for your charm application."""
+
+    relation: str
+    endpoints: List[Endpoint]
+    service: Optional[str] = None
+
+
+class UnitPolicy(pydantic.BaseModel):
+    """Data type for defining a policy for your charm unit."""
+
+    relation: str
 
 
 class MeshPolicy(pydantic.BaseModel):
@@ -209,6 +238,7 @@ class MeshPolicy(pydantic.BaseModel):
     target_app_name: str
     target_namespace: str
     target_service: Optional[str] = None
+    target_type: Literal[PolicyTargetType.app, PolicyTargetType.unit] = PolicyTargetType.app
     endpoints: List[Endpoint]
 
 
@@ -228,7 +258,7 @@ class ServiceMeshConsumer(Object):
         mesh_relation_name: str = "service-mesh",
         cross_model_mesh_requires_name: str = "require-cmr-mesh",
         cross_model_mesh_provides_name: str = "provide-cmr-mesh",
-        policies: Optional[List[Policy]] = None,
+        policies: Optional[List[Union[Policy, AppPolicy, UnitPolicy]]] = None,
         auto_join: bool = True,
     ):
         """Class used for joining a service mesh.
@@ -392,9 +422,11 @@ class ServiceMeshProvider(Object):
 
     def update_relations(self):
         """Update all relations with the labels needed to use the mesh."""
-        rel_data = json.dumps(self._labels)
-        for relation in self._charm.model.relations[self._relation_name]:
-            relation.data[self._charm.app]["labels"] = rel_data
+        # Only the leader unit can update the application data bag
+        if self._charm.unit.is_leader():
+            rel_data = json.dumps(self._labels)
+            for relation in self._charm.model.relations[self._relation_name]:
+                relation.data[self._charm.app]["labels"] = rel_data
 
     def mesh_info(self) -> List[MeshPolicy]:
         """Return the relation data that defines Policies requested by the related applications."""
@@ -410,7 +442,7 @@ def build_mesh_policies(
         relation_mapping: RelationMapping,
         target_app_name: str,
         target_namespace: str,
-        policies: List[Policy],
+        policies: List[Union[Policy, AppPolicy, UnitPolicy]],
         cmr_application_data: Dict[str, CMRData]
 ) -> List[MeshPolicy]:
     """Generate MeshPolicy that implement the given policies for the currently related applications.
@@ -419,7 +451,7 @@ def build_mesh_policies(
         relation_mapping: Charm's RelatioMapping object, for example self.model.relations.
         target_app_name: The name of the target application, for example self.app.name.
         target_namespace: The namespace of the target application, for example self.model.name.
-        policies: List of Policy objects defining the access rules.
+        policies: List of Policy (deprecated), AppPolicy, or UnitPolicy objects defining the access rules.
         cmr_application_data: Data for cross-model relations, mapping app names to CMRData.
     """
     mesh_policies = []
@@ -434,16 +466,30 @@ def build_mesh_policies(
                 source_app_name = relation.app.name
                 source_namespace = target_namespace
 
-            mesh_policies.append(
-                MeshPolicy(
-                    source_app_name=source_app_name,
-                    source_namespace=source_namespace,
-                    target_app_name=target_app_name,
-                    target_namespace=target_namespace,
-                    target_service=policy.service,
-                    endpoints=policy.endpoints,
-                ).model_dump()
-            )
+            if isinstance(policy, UnitPolicy):
+                mesh_policies.append(
+                    MeshPolicy(
+                        source_app_name=source_app_name,
+                        source_namespace=source_namespace,
+                        target_app_name=target_app_name,
+                        target_namespace=target_namespace,
+                        target_service=None,
+                        target_type=PolicyTargetType.unit,
+                        endpoints=[],
+                    ).model_dump()
+                )
+            else:
+                mesh_policies.append(
+                    MeshPolicy(
+                        source_app_name=source_app_name,
+                        source_namespace=source_namespace,
+                        target_app_name=target_app_name,
+                        target_namespace=target_namespace,
+                        target_service=policy.service,
+                        target_type=PolicyTargetType.app,
+                        endpoints=policy.endpoints,
+                    ).model_dump()
+                )
     return mesh_policies
 
 
