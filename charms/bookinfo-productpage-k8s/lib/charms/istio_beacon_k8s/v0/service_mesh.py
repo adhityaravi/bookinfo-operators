@@ -58,9 +58,6 @@ class MyCharm(CharmBase):
         self._mesh = ServiceMeshConsumer(
             self,
             policies=[
-                UnitPolicy(
-                    relation="metrics",
-                ),
                 AppPolicy(
                     relation="data",
                     endpoints=[
@@ -71,16 +68,20 @@ class MyCharm(CharmBase):
                         ),
                     ],
                 ),
+                UnitPolicy(
+                    relation="metrics",
+                    ports=[HTTP_LISTEN_PORT],
+                ),
             ],
         )
 ```
 
 This example creates two policies:
-- An unit policy - When related over the `metrics` relation allow the related application to access the units (via the unit/workload ip or FQDN) of this application without any restriction.
-- An app policy - When related over the `data` relation allow the relation application to `GET` this application's `/data` endpoint on the specified port (via the app/service ip or FQDN)
+- An app policy - When related over the `data` relation, allow the related application to `GET` this application's `/data` endpoint on the specified port through the app's Kubernetes service.
+- A unit policy - When related over the `metrics` relation, allow the related application to access this application's unit pods directly on the specified port without any other restriction. UnitPolicy does not support fine-grained access control on the methods and paths via `Endpoints`.
 
-An UnitPolicy creates a less restrictive policy that allows complete access but only to the units of the charm via individual unit addresses.
-An AppPolicy created a more fine-grained policy that can be used to control how the source application can communicate with the target application via the app address.
+An AppPolicy can be used to control how the source application can communicate with the target application via the app address.
+A UnitPolicy allows access to the specified port but only to the unit pods of the charm via individual unit addresses.
 
 ### Cross-Model Relations
 To request service mesh policies for cross-model relations, additional information is required.
@@ -157,7 +158,7 @@ from ops import CharmBase, Object, RelationMapping
 
 LIBID = "3f40cb7e3569454a92ac2541c5ca0a0c"  # Never change this
 LIBAPI = 0
-LIBPATCH = 7
+LIBPATCH = 8
 
 PYDEPS = ["lightkube", "pydantic"]
 
@@ -207,7 +208,7 @@ class Policy(pydantic.BaseModel):
 
     def __init__(self, **data):
         warnings.warn(
-            "Policy is deprecated. Use AppPolicy for fine-grained application-level policies "
+            "Polcy is deprecated. Use AppPolicy for fine-grained application-level policies "
             "or UnitPolicy to allow access to charm units. For migration, Policy can be "
             "directly replaced with AppPolicy.",
             DeprecationWarning,
@@ -228,6 +229,10 @@ class UnitPolicy(pydantic.BaseModel):
     """Data type for defining a policy for your charm unit."""
 
     relation: str
+    # UnitPolicy at the moment only supports access control over ports.
+    # This limitation stems from the currenlty supported upstream service meshes (Istio).
+    # Since other attributes of Endpoints class are not supported, the easiest implementation was to use just the ports attribute in this class.
+    ports: Optional[List[int]] = None
 
 
 class MeshPolicy(pydantic.BaseModel):
@@ -310,12 +315,16 @@ class ServiceMeshConsumer(Object):
 
     def _send_cmr_data(self, event):
         """Send app and model information for CMR."""
+        if not self._charm.unit.is_leader():
+            return
         data = CMRData(
             app_name=self._charm.app.name, juju_model_name=self._charm.model.name
         ).model_dump()
         event.relation.data[self._charm.app]["cmr_data"] = json.dumps(data)
 
     def _relations_changed(self, _event):
+        if not self._charm.unit.is_leader():
+            return
         self.update_service_mesh()
 
     def update_service_mesh(self):
@@ -357,6 +366,8 @@ class ServiceMeshConsumer(Object):
         return json.loads(self._relation.data[self._relation.app]["labels"])
 
     def _on_mesh_broken(self, _event):
+        if not self._charm.unit.is_leader():
+            return
         self._set_labels({})
         self._delete_label_configmap()
 
@@ -451,7 +462,7 @@ def build_mesh_policies(
         relation_mapping: Charm's RelatioMapping object, for example self.model.relations.
         target_app_name: The name of the target application, for example self.app.name.
         target_namespace: The namespace of the target application, for example self.model.name.
-        policies: List of Policy (deprecated), AppPolicy, or UnitPolicy objects defining the access rules.
+        policies: List of AppPolicy, or UnitPolicy objects defining the access rules.
         cmr_application_data: Data for cross-model relations, mapping app names to CMRData.
     """
     mesh_policies = []
@@ -475,11 +486,17 @@ def build_mesh_policies(
                         target_namespace=target_namespace,
                         target_service=None,
                         target_type=PolicyTargetType.unit,
-                        endpoints=[],
+                        endpoints=[
+                            Endpoint(
+                                ports=policy.ports,
+                            )
+                        ]
+                        if policy.ports
+                        else [],
                     ).model_dump()
                 )
             else:
-                mesh_policies.append(
+               mesh_policies.append(
                     MeshPolicy(
                         source_app_name=source_app_name,
                         source_namespace=source_namespace,

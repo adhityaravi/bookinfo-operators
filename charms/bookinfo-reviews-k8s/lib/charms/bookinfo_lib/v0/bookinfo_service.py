@@ -47,8 +47,8 @@ class BookinfoServiceProvider(Object):
             return
         
         # Use socket.getfqdn() to get the FQDN
-        fqdn = socket.getfqdn()
-        url = f"http://{fqdn}:{self._port}"
+        # fqdn = socket.getfqdn()
+        url = f"http://{self._charm.app.name}:{self._port}"
         
         relation.data[self._charm.app]["url"] = url
         logger.info(f"Published URL: {url}")

@@ -1,0 +1,82 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  actions: read
+  security-events: write
+  contents: read
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      details: ${{ steps.changes.outputs.details }}
+      ratings: ${{ steps.changes.outputs.ratings }}
+      reviews: ${{ steps.changes.outputs.reviews }}
+      productpage: ${{ steps.changes.outputs.productpage }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            details:
+              - 'charms/bookinfo-details-k8s/**'
+              - 'charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib/**'
+            ratings:
+              - 'charms/bookinfo-ratings-k8s/**'
+              - 'charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib/**'
+            reviews:
+              - 'charms/bookinfo-reviews-k8s/**'
+              - 'charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib/**'
+            productpage:
+              - 'charms/bookinfo-productpage-k8s/**'
+              - 'charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib/**'
+
+  details:
+    name: Details
+    needs: changes
+    if: needs.changes.outputs.details == 'true'
+    uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
+    secrets: inherit
+    with:
+      automatically-retry-hooks: true
+      charm-path: charms/bookinfo-details-k8s
+
+  ratings:
+    name: Ratings
+    needs: changes
+    if: needs.changes.outputs.ratings == 'true'
+    uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
+    secrets: inherit
+    with:
+      automatically-retry-hooks: true
+      charm-path: charms/bookinfo-ratings-k8s
+
+  reviews:
+    name: Reviews
+    needs: changes
+    if: needs.changes.outputs.reviews == 'true'
+    uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
+    secrets: inherit
+    with:
+      automatically-retry-hooks: true
+      charm-path: charms/bookinfo-reviews-k8s
+
+  productpage:
+    name: Productpage
+    needs: changes
+    if: needs.changes.outputs.productpage == 'true'
+    uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
+    secrets: inherit
+    with:
+      automatically-retry-hooks: true
+      charm-path: charms/bookinfo-productpage-k8s

@@ -1,19 +1,24 @@
 #!/usr/bin/env python3
+"""Charm for the Product Page microservice."""
 
-import socket
 import logging
-from urllib.parse import urlparse
+import socket
 from typing import Dict, Optional
+from urllib.parse import urlparse
 
-from ops.charm import CharmBase, ActionEvent
+from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceConsumer
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    AppPolicy,
+    Endpoint,
+    Method,
+    ServiceMeshConsumer,
+)
+from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
+from ops.charm import ActionEvent, CharmBase
 from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import LayerDict
-
-from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
-from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceConsumer
-from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer, Method, Endpoint, AppPolicy
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +27,7 @@ class ProductPageK8sCharm(CharmBase):
     """Charm for the Product Page microservice."""
 
     _stored = StoredState()
-    
+
     # WSGI wrapper template for handling path prefixes
     WRAPPER_TEMPLATE = '''#!/usr/bin/env python3
 import re
@@ -33,52 +38,52 @@ PREFIX = "{prefix}"
 
 class PathPrefixMiddleware:
     """Middleware to handle path prefixes for hardcoded URLs."""
-    
+
     def __init__(self, app, prefix):
         self.app = app
         self.prefix = prefix
-    
+
     def __call__(self, environ, start_response):
         # Buffer to capture response details
         response_data = []
-        
+
         def custom_start_response(status, headers, exc_info=None):
             response_data.append((status, headers))
             return start_response(status, headers, exc_info)
-        
+
         # Get response from app
         app_iter = self.app(environ, custom_start_response)
-        
+
         # Check if this is an HTML response
         if response_data:
             headers = dict(response_data[0][1])
             content_type = headers.get('Content-Type', '')
-            
+
             # Only process HTML responses
             if 'text/html' in content_type:
                 return self._fix_paths(app_iter)
-        
+
         return app_iter
-    
+
     def _fix_paths(self, app_iter):
         """Fix hardcoded paths in HTML responses."""
         try:
             # Collect response body
             response_body = b''.join(app_iter)
-            
+
             # Convert to string for processing
             body_str = response_body.decode('utf-8')
-            
+
             # Fix hardcoded paths
             # Replace href="/logout" with href="{prefix}/logout"
             body_str = re.sub(r'href="/logout"', f'href="{{self.prefix}}/logout"', body_str)
-            
+
             # Replace action="login" with absolute path including prefix
             body_str = re.sub(r'action="login"', f'action="{{self.prefix}}/login"', body_str)
-            
-            # Replace /static/ paths  
+
+            # Replace /static/ paths
             body_str = re.sub(r'(src|href)="/static/', r'\\1="' + self.prefix + '/static/', body_str)
-            
+
             # Return modified response
             yield body_str.encode('utf-8')
         finally:
@@ -107,10 +112,10 @@ else:
         # Ingress setup
         self._ingress = IngressPerAppRequirer(
             charm=self,
-            port=self.config["port"],
+            port=int(self.config["port"]),
             strip_prefix=True,
             redirect_https=True,
-            scheme='http',
+            scheme="http",
         )
         self.framework.observe(self._ingress.on.ready, self._on_ingress_ready)
 
@@ -132,18 +137,18 @@ else:
                     relation="website",
                     endpoints=[
                         Endpoint(
-                            ports=[self.config["port"]],
+                            ports=[int(self.config["port"])],
                             methods=[Method.get],
-                            paths=["/productpage", "/static/*", "/login", "/logout", "/health"]
+                            paths=["/productpage", "/static/*", "/login", "/logout", "/health"],
                         )
-                    ]
+                    ],
                 )
-            ]
+            ],
         )
 
         # Actions
         self.framework.observe(self.on.get_url_action, self._get_url)
-        
+
         # Initial port configuration
         self._set_ports()
 
@@ -170,7 +175,7 @@ else:
 
     def _reconcile(self):
         """Reconcile the charm state.
-        
+
         This is the main reconciliation loop that ensures the charm
         converges to the desired state regardless of which event triggered it.
         """
@@ -185,7 +190,7 @@ else:
 
         # Get current state from relations
         available_services = self._get_available_services()
-        
+
         # Check if we have minimum required services
         if not available_services:
             self.unit.status = WaitingStatus("Waiting for at least 1 backend service relation")
@@ -195,11 +200,13 @@ else:
         try:
             self._update_layer()
             self._set_ports()
-            
+
             # Check if service is running
             service = self.container.get_service("productpage")
             if service.is_running():
-                self.unit.status = ActiveStatus(f"Ready with {len(available_services)} backend services")
+                self.unit.status = ActiveStatus(
+                    f"Ready with {len(available_services)} backend services"
+                )
             else:
                 self.unit.status = MaintenanceStatus("Service not running")
         except Exception as e:
@@ -238,10 +245,10 @@ else:
         # Create wrapper to handle path prefix if we have an ingress
         if self._ingress.url:
             self._create_wsgi_wrapper()
-        
+
         layer = self._generate_layer()
         self.container.add_layer("productpage", layer, combine=True)
-        
+
         try:
             self.container.replan()
             logger.info("Service layer updated")
@@ -255,14 +262,16 @@ else:
         prefix = ""
         if ingress_url := self._ingress.url:
             parsed = urlparse(ingress_url)
-            if parsed.path and parsed.path != '/':
-                prefix = parsed.path.rstrip('/')
-        
+            if parsed.path and parsed.path != "/":
+                prefix = parsed.path.rstrip("/")
+
         # Generate wrapper content from template
         wrapper_content = self.WRAPPER_TEMPLATE.format(prefix=prefix)
-        
+
         try:
-            self.container.push("/opt/microservices/productpage_wrapper.py", wrapper_content, make_dirs=True)
+            self.container.push(
+                "/opt/microservices/productpage_wrapper.py", wrapper_content, make_dirs=True
+            )
             logger.info(f"Created WSGI wrapper with prefix: {prefix}")
         except Exception as e:
             logger.error(f"Failed to create wrapper: {e}")
@@ -307,7 +316,7 @@ else:
             parsed = urlparse(reviews_url)
             env["REVIEWS_HOSTNAME"] = parsed.hostname or "reviews"
             env["REVIEWS_SERVICE_PORT"] = str(parsed.port or 9080)
-            
+
         ratings_url = self._get_service_url("ratings")
         if ratings_url:
             parsed = urlparse(ratings_url)
@@ -319,7 +328,7 @@ else:
     def _set_ports(self):
         """Open the application ports to fix Juju's 65535 placeholder issue."""
         try:
-            port = self.config["port"]
+            port = int(self.config["port"])
             self.unit.open_port("tcp", port)
             logger.info(f"Opened TCP port {port}")
         except Exception as e:
@@ -335,9 +344,9 @@ else:
         output = self._internal_url
         if ingress_url := self._ingress.url:
             output = ingress_url
-        if not output.endswith('/'):
-            output = output + '/'
-        # NOTE: just give the user the product page url instead of the overview since redirect isnt working right.
+        if not output.endswith("/"):
+            output = output + "/"
+        # NOTE: just give the user the product page url instead of the overview since redirect isn't working right.
         output = output + "productpage?u=normal"
         event.set_results({"url": output})
 
@@ -345,7 +354,7 @@ else:
     def _internal_url(self) -> str:
         """Return the fqdn dns-based in-cluster (private) address of the catalogue server."""
         scheme = "http"
-        port = self.config["port"]
+        port = int(self.config["port"])
         return f"{scheme}://{socket.getfqdn()}:{port}"
 
 
