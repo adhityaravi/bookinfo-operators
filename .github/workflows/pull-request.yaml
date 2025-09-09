@@ -1,0 +1,38 @@
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  path-filter:
+    name: Detect Changes
+    uses: ./.github/workflows/path-filter.yaml
+
+  details-pr:
+    name: Details PR
+    needs: path-filter
+    if: needs.path-filter.outputs.details == 'true'
+    uses: ./.github/workflows/bookinfo-details-pull-request.yaml
+    secrets: inherit
+
+  ratings-pr:
+    name: Ratings PR
+    needs: path-filter
+    if: needs.path-filter.outputs.ratings == 'true'
+    uses: ./.github/workflows/bookinfo-ratings-pull-request.yaml
+    secrets: inherit
+
+  reviews-pr:
+    name: Reviews PR
+    needs: path-filter
+    if: needs.path-filter.outputs.reviews == 'true'
+    uses: ./.github/workflows/bookinfo-reviews-pull-request.yaml
+    secrets: inherit
+
+  productpage-pr:
+    name: Productpage PR
+    needs: path-filter
+    if: needs.path-filter.outputs.productpage == 'true'
+    uses: ./.github/workflows/bookinfo-productpage-pull-request.yaml
+    secrets: inherit
