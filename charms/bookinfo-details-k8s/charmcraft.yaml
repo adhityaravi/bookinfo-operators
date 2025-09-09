@@ -56,6 +56,10 @@ provides:
       Allow cross-model applications to make HTTP requests to the workload of this charm via the service mesh.
       This relation provides additional data required by the service mesh to create cross-model authorization policies
 
+peers:
+  peers:
+    interface: details-peers
+
 requires:
   service-mesh:
     limit: 1

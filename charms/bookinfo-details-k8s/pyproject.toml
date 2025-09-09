@@ -20,9 +20,11 @@ dev = [
     "coverage[toml]",
     "pytest-mock",
     # Integration tests
-    "juju>=3.0",
-    "pytest-operator",
-    "pytest-asyncio",
+    "jubilant",
+    "pytest-jubilant",
+    # Integration tests
+    "jubilant",
+    "pytest-jubilant",
 ]
 
 # Linting tools configuration

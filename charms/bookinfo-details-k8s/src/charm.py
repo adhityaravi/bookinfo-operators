@@ -10,7 +10,13 @@ from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingSta
 from ops.pebble import LayerDict
 
 from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider
-from charms.istio_beacon_k8s.v0.service_mesh import ServiceMeshConsumer, Method, Endpoint, AppPolicy
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    ServiceMeshConsumer,
+    Method,
+    Endpoint,
+    AppPolicy,
+    UnitPolicy,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -42,13 +48,15 @@ class DetailsK8sCharm(CharmBase):
                     relation="details",
                     endpoints=[
                         Endpoint(
-                            ports=[PORT],
-                            methods=[Method.get],
-                            paths=["/health", "/details/*"]
+                            ports=[PORT], methods=[Method.get], paths=["/health", "/details/*"]
                         )
-                    ]
+                    ],
+                ),
+                UnitPolicy(
+                    relation="peers",
+                    ports=[PORT],
                 )
-            ]
+            ],
         )
         self._set_ports()
 
@@ -67,7 +75,7 @@ class DetailsK8sCharm(CharmBase):
 
     def _reconcile(self):
         """Reconcile the charm state.
-        
+
         This is the main reconciliation loop that ensures the charm
         converges to the desired state regardless of which event triggered it.
         """
@@ -82,7 +90,7 @@ class DetailsK8sCharm(CharmBase):
         try:
             self._update_layer()
             self._set_ports()
-            
+
             # Check if service is running
             service = self.container.get_service("details")
             if service.is_running():
@@ -101,7 +109,7 @@ class DetailsK8sCharm(CharmBase):
 
         layer = self._generate_layer()
         self.container.add_layer("details", layer, combine=True)
-        
+
         try:
             self.container.replan()
             logger.info("Service layer updated")
