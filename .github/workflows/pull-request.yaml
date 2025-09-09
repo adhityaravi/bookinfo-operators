@@ -41,7 +41,7 @@ jobs:
               - 'charms/bookinfo-productpage-k8s/**'
               - 'charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib/**'
 
-  details-pr:
+  details:
     name: Details
     needs: changes
     if: needs.changes.outputs.details == 'true'
@@ -51,7 +51,7 @@ jobs:
       automatically-retry-hooks: true
       charm-path: charms/bookinfo-details-k8s
 
-  ratings-pr:
+  ratings:
     name: Ratings
     needs: changes
     if: needs.changes.outputs.ratings == 'true'
@@ -61,7 +61,7 @@ jobs:
       automatically-retry-hooks: true
       charm-path: charms/bookinfo-ratings-k8s
 
-  reviews-pr:
+  reviews:
     name: Reviews
     needs: changes
     if: needs.changes.outputs.reviews == 'true'
@@ -71,7 +71,7 @@ jobs:
       automatically-retry-hooks: true
       charm-path: charms/bookinfo-reviews-k8s
 
-  productpage-pr:
+  productpage:
     name: Productpage
     needs: changes
     if: needs.changes.outputs.productpage == 'true'
