@@ -1,22 +1,22 @@
 #!/usr/bin/env python3
+"""Charm for the Details microservice."""
 
 import logging
 from typing import Dict
 
+from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider
+from charms.istio_beacon_k8s.v0.service_mesh import (
+    AppPolicy,
+    Endpoint,
+    Method,
+    ServiceMeshConsumer,
+    UnitPolicy,
+)
 from ops.charm import CharmBase
 from ops.framework import StoredState
 from ops.main import main
 from ops.model import ActiveStatus, BlockedStatus, MaintenanceStatus, WaitingStatus
 from ops.pebble import LayerDict
-
-from charms.bookinfo_lib.v0.bookinfo_service import BookinfoServiceProvider
-from charms.istio_beacon_k8s.v0.service_mesh import (
-    ServiceMeshConsumer,
-    Method,
-    Endpoint,
-    AppPolicy,
-    UnitPolicy,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -55,7 +55,7 @@ class DetailsK8sCharm(CharmBase):
                 UnitPolicy(
                     relation="peers",
                     ports=[PORT],
-                )
+                ),
             ],
         )
         self._set_ports()

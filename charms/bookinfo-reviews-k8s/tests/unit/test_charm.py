@@ -1,9 +1,9 @@
 """Unit tests for reviews charm."""
 
 import unittest
-from unittest.mock import MagicMock, patch
 
 import ops.testing
+
 from charm import ReviewsK8sCharm
 
 
@@ -24,5 +24,6 @@ class TestReviewsCharm(unittest.TestCase):
         """Test that pebble ready event sets appropriate status."""
         self.harness.container_pebble_ready("bookinfo-reviews")
         self.assertIsInstance(
-            self.harness.model.unit.status, (ops.WaitingStatus, ops.ActiveStatus, ops.MaintenanceStatus)
+            self.harness.model.unit.status,
+            (ops.WaitingStatus, ops.ActiveStatus, ops.MaintenanceStatus),
         )

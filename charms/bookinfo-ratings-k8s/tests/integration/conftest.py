@@ -1,7 +1,7 @@
 """Fixtures for ratings charm integration tests."""
 
 import pytest
-from pytest_jubilant import pack, get_resources
+from pytest_jubilant import get_resources, pack
 
 
 @pytest.fixture(scope="module")

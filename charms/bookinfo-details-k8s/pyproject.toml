@@ -22,9 +22,8 @@ dev = [
     # Integration tests
     "jubilant",
     "pytest-jubilant",
-    # Integration tests
-    "jubilant",
-    "pytest-jubilant",
+    # Static type checking
+    "pyright",
 ]
 
 # Linting tools configuration

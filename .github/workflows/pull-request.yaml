@@ -42,7 +42,7 @@ jobs:
               - 'charms/bookinfo-libs-k8s/lib/charms/bookinfo_lib/**'
 
   details-pr:
-    name: Details PR
+    name: Details
     needs: changes
     if: needs.changes.outputs.details == 'true'
     uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
@@ -52,7 +52,7 @@ jobs:
       charm-path: charms/bookinfo-details-k8s
 
   ratings-pr:
-    name: Ratings PR
+    name: Ratings
     needs: changes
     if: needs.changes.outputs.ratings == 'true'
     uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
@@ -62,7 +62,7 @@ jobs:
       charm-path: charms/bookinfo-ratings-k8s
 
   reviews-pr:
-    name: Reviews PR
+    name: Reviews
     needs: changes
     if: needs.changes.outputs.reviews == 'true'
     uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests
@@ -72,7 +72,7 @@ jobs:
       charm-path: charms/bookinfo-reviews-k8s
 
   productpage-pr:
-    name: Productpage PR
+    name: Productpage
     needs: changes
     if: needs.changes.outputs.productpage == 'true'
     uses: canonical/observability/.github/workflows/charm-pull-request.yaml@feat/option-to-meshify-tests

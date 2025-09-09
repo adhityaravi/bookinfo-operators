@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Charm for the Product Page microservice."""
 
 import logging
 import socket
@@ -37,52 +38,52 @@ PREFIX = "{prefix}"
 
 class PathPrefixMiddleware:
     """Middleware to handle path prefixes for hardcoded URLs."""
-    
+
     def __init__(self, app, prefix):
         self.app = app
         self.prefix = prefix
-    
+
     def __call__(self, environ, start_response):
         # Buffer to capture response details
         response_data = []
-        
+
         def custom_start_response(status, headers, exc_info=None):
             response_data.append((status, headers))
             return start_response(status, headers, exc_info)
-        
+
         # Get response from app
         app_iter = self.app(environ, custom_start_response)
-        
+
         # Check if this is an HTML response
         if response_data:
             headers = dict(response_data[0][1])
             content_type = headers.get('Content-Type', '')
-            
+
             # Only process HTML responses
             if 'text/html' in content_type:
                 return self._fix_paths(app_iter)
-        
+
         return app_iter
-    
+
     def _fix_paths(self, app_iter):
         """Fix hardcoded paths in HTML responses."""
         try:
             # Collect response body
             response_body = b''.join(app_iter)
-            
+
             # Convert to string for processing
             body_str = response_body.decode('utf-8')
-            
+
             # Fix hardcoded paths
             # Replace href="/logout" with href="{prefix}/logout"
             body_str = re.sub(r'href="/logout"', f'href="{{self.prefix}}/logout"', body_str)
-            
+
             # Replace action="login" with absolute path including prefix
             body_str = re.sub(r'action="login"', f'action="{{self.prefix}}/login"', body_str)
-            
-            # Replace /static/ paths  
+
+            # Replace /static/ paths
             body_str = re.sub(r'(src|href)="/static/', r'\\1="' + self.prefix + '/static/', body_str)
-            
+
             # Return modified response
             yield body_str.encode('utf-8')
         finally:
@@ -111,7 +112,7 @@ else:
         # Ingress setup
         self._ingress = IngressPerAppRequirer(
             charm=self,
-            port=self.config["port"],
+            port=int(self.config["port"]),
             strip_prefix=True,
             redirect_https=True,
             scheme="http",
@@ -136,7 +137,7 @@ else:
                     relation="website",
                     endpoints=[
                         Endpoint(
-                            ports=[self.config["port"]],
+                            ports=[int(self.config["port"])],
                             methods=[Method.get],
                             paths=["/productpage", "/static/*", "/login", "/logout", "/health"],
                         )
@@ -327,7 +328,7 @@ else:
     def _set_ports(self):
         """Open the application ports to fix Juju's 65535 placeholder issue."""
         try:
-            port = self.config["port"]
+            port = int(self.config["port"])
             self.unit.open_port("tcp", port)
             logger.info(f"Opened TCP port {port}")
         except Exception as e:
@@ -345,7 +346,7 @@ else:
             output = ingress_url
         if not output.endswith("/"):
             output = output + "/"
-        # NOTE: just give the user the product page url instead of the overview since redirect isnt working right.
+        # NOTE: just give the user the product page url instead of the overview since redirect isn't working right.
         output = output + "productpage?u=normal"
         event.set_results({"url": output})
 
@@ -353,7 +354,7 @@ else:
     def _internal_url(self) -> str:
         """Return the fqdn dns-based in-cluster (private) address of the catalogue server."""
         scheme = "http"
-        port = self.config["port"]
+        port = int(self.config["port"])
         return f"{scheme}://{socket.getfqdn()}:{port}"
 
 
