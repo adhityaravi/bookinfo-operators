@@ -9,7 +9,7 @@ terraform {
 }
 
 module "bookinfo" {
-  source = "../../../../terraform/bookinfo"
+  source = "../../../../terraform"
 
   model        = var.model
   channel      = var.channel
