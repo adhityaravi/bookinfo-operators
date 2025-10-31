@@ -1,16 +1,9 @@
-# We use constraints to set AntiAffinity in K8s
-# https://discourse.charmhub.io/t/pod-priority-and-affinity-in-juju-charms/4091/13?u=jose
-
-# FIXME: Passing an empty constraints value to the Juju Terraform provider currently
-# causes the operation to fail due to https://github.com/juju/terraform-provider-juju/issues/344
-# Therefore, we set a default value of "arch=amd64" for all applications.
-
 variable "channel" {
   description = "Channel that the applications are deployed from"
   type        = string
 }
 
-variable "model" {
+variable "model_uuid" {
   description = "Reference to an existing model resource or data source for the model to deploy to"
   type        = string
 }

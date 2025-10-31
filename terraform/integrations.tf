@@ -1,7 +1,7 @@
 # -------------- # Bookinfo microservice integrations --------------
 
 resource "juju_integration" "productpage_details" {
-  model = var.model
+  model_uuid = var.model_uuid
 
   application {
     name     = module.productpage.app_name
@@ -15,8 +15,8 @@ resource "juju_integration" "productpage_details" {
 }
 
 resource "juju_integration" "productpage_reviews" {
-  count = var.enable_reviews ? 1 : 0
-  model = var.model
+  count      = var.enable_reviews ? 1 : 0
+  model_uuid = var.model_uuid
 
   application {
     name     = module.productpage.app_name
@@ -30,8 +30,8 @@ resource "juju_integration" "productpage_reviews" {
 }
 
 resource "juju_integration" "reviews_ratings" {
-  count = var.enable_reviews ? 1 : 0
-  model = var.model
+  count      = var.enable_reviews ? 1 : 0
+  model_uuid = var.model_uuid
 
   application {
     name     = module.reviews[0].app_name
@@ -47,8 +47,8 @@ resource "juju_integration" "reviews_ratings" {
 # -------------- # Service Mesh integrations (conditional) --------------
 
 resource "juju_integration" "productpage_service_mesh" {
-  count = var.service_mesh ? 1 : 0
-  model = var.model
+  count      = var.service_mesh ? 1 : 0
+  model_uuid = var.model_uuid
 
   application {
     name     = module.productpage.app_name
@@ -62,8 +62,8 @@ resource "juju_integration" "productpage_service_mesh" {
 }
 
 resource "juju_integration" "details_service_mesh" {
-  count = var.service_mesh ? 1 : 0
-  model = var.model
+  count      = var.service_mesh ? 1 : 0
+  model_uuid = var.model_uuid
 
   application {
     name     = module.details.app_name
@@ -77,8 +77,8 @@ resource "juju_integration" "details_service_mesh" {
 }
 
 resource "juju_integration" "reviews_service_mesh" {
-  count = var.service_mesh && var.enable_reviews ? 1 : 0
-  model = var.model
+  count      = var.service_mesh && var.enable_reviews ? 1 : 0
+  model_uuid = var.model_uuid
 
   application {
     name     = module.reviews[0].app_name
@@ -92,8 +92,8 @@ resource "juju_integration" "reviews_service_mesh" {
 }
 
 resource "juju_integration" "ratings_service_mesh" {
-  count = var.service_mesh && var.enable_reviews ? 1 : 0
-  model = var.model
+  count      = var.service_mesh && var.enable_reviews ? 1 : 0
+  model_uuid = var.model_uuid
 
   application {
     name     = module.ratings[0].app_name

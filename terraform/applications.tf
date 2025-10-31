@@ -5,7 +5,7 @@ module "istio_beacon" {
   channel            = var.istio_beacon.channel
   config             = var.istio_beacon.config
   constraints        = var.istio_beacon.constraints
-  model              = var.model
+  model_uuid         = var.model_uuid
   revision           = var.istio_beacon.revision
   storage_directives = var.istio_beacon.storage_directives
   units              = var.istio_beacon.units
@@ -17,7 +17,7 @@ module "productpage" {
   channel            = var.channel
   config             = var.productpage.config
   constraints        = var.productpage.constraints
-  model              = var.model
+  model_uuid         = var.model_uuid
   revision           = var.productpage.revision
   storage_directives = var.productpage.storage_directives
   units              = var.productpage.units
@@ -29,7 +29,7 @@ module "details" {
   channel            = var.channel
   config             = var.details.config
   constraints        = var.details.constraints
-  model              = var.model
+  model_uuid         = var.model_uuid
   revision           = var.details.revision
   storage_directives = var.details.storage_directives
   units              = var.details.units
@@ -42,7 +42,7 @@ module "reviews" {
   channel            = var.channel
   config             = var.reviews.config
   constraints        = var.reviews.constraints
-  model              = var.model
+  model_uuid         = var.model_uuid
   revision           = var.reviews.revision
   storage_directives = var.reviews.storage_directives
   units              = var.reviews.units
@@ -55,7 +55,7 @@ module "ratings" {
   channel            = var.channel
   config             = var.ratings.config
   constraints        = var.ratings.constraints
-  model              = var.model
+  model_uuid         = var.model_uuid
   revision           = var.ratings.revision
   storage_directives = var.ratings.storage_directives
   units              = var.ratings.units

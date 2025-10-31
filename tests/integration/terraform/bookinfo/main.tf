@@ -3,15 +3,20 @@ terraform {
   required_providers {
     juju = {
       source  = "juju/juju"
-      version = ">= 0.14.0"
+      version = "~> 1.0"
     }
   }
 }
 
-module "bookinfo" {
-  source = "../../../../terraform"
+data "juju_model" "bookinfo_model" {
+  name  = var.model
+  owner = "admin"
+}
 
-  model        = var.model
+module "bookinfo" {
+  source = "git::https://github.com/adhityaravi/bookinfo-operators//terraform"
+
+  model_uuid   = data.juju_model.bookinfo_model.uuid
   channel      = var.channel
   service_mesh = var.service_mesh
 }
