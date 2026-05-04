@@ -14,6 +14,11 @@ from charms.istio_beacon_k8s.v0.service_mesh import (
     ServiceMeshConsumer,
 )
 from charms.traefik_k8s.v2.ingress import IngressPerAppRequirer
+from charmlibs.interfaces.istio_request_auth import (
+    ClaimToHeader,
+    IstioRequestAuthRequirer,
+    JWTRule,
+)
 from ops.charm import ActionEvent, CharmBase
 from ops.framework import StoredState
 from ops.main import main
@@ -149,6 +154,12 @@ else:
         # Actions
         self.framework.observe(self.on.get_url_action, self._get_url)
 
+        # Request authentication (JWT rules for Istio ingress)
+        self._request_auth = IstioRequestAuthRequirer(self, relation_name="istio-request-auth")
+        self.framework.observe(
+            self.on["istio-request-auth"].relation_joined, self._on_request_auth_joined
+        )
+
         # Initial port configuration
         self._set_ports()
 
@@ -159,6 +170,7 @@ else:
 
     def _on_config_changed(self, event):
         """Handle config changed event."""
+        self._publish_request_auth()
         self._reconcile()
 
     def _on_update_status(self, event):
@@ -172,6 +184,36 @@ else:
     def _on_relation_changed(self, event):
         """Handle any relation changed event."""
         self._reconcile()
+
+    def _on_request_auth_joined(self, _):
+        """Publish JWT rules when the request-auth relation is established."""
+        self._publish_request_auth()
+
+    def _publish_request_auth(self):
+        """Publish JWT rules if the relation exists and config is set."""
+        relations = self.model.relations.get("istio-request-auth")
+        if not relations:
+            logger.info("request-auth: no relation, skipping")
+            return
+
+        issuer = str(self.config.get("jwt-issuer", ""))
+        jwks_uri = str(self.config.get("jwt-jwks-uri", ""))
+        if not issuer or not jwks_uri:
+            logger.info("request-auth: missing config (issuer=%r, jwks_uri=%r)", issuer, jwks_uri)
+            return
+
+        logger.info("request-auth: publishing JWT rules (issuer=%s)", issuer)
+        self._request_auth.publish_data([
+            JWTRule(
+                issuer=issuer,
+                jwks_uri=jwks_uri,
+                forward_original_token=True,
+                claim_to_headers=[
+                    ClaimToHeader(header="x-jwt-email", claim="email"),
+                    ClaimToHeader(header="x-jwt-sub", claim="sub"),
+                ],
+            )
+        ])
 
     def _reconcile(self):
         """Reconcile the charm state.

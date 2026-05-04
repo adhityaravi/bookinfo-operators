@@ -71,7 +71,6 @@ requires:
     limit: 1
   ingress:
     interface: ingress
-    limit: 1
   service-mesh:
     limit: 1
     interface: service_mesh
@@ -82,6 +81,12 @@ requires:
     description: |
       Allow this charms workload to make HTTP requests to cross-model applications via the service mesh.
       This relation provides additional data required by the service mesh to create cross-model authorization policies.
+  istio-request-auth:
+    interface: istio_request_auth
+    limit: 1
+    description: |
+      Publish JWT authentication rules to the Istio ingress gateway.
+      The ingress gateway creates a RequestAuthentication resource from these rules.
 
 resources:
   bookinfo-productpage-image:
@@ -103,6 +108,14 @@ config:
       default: 0
       description: Number of requests to send to backend services per incoming request (for load testing)
       type: int
+    jwt-issuer:
+      default: ""
+      description: JWT issuer URL for RequestAuthentication (e.g. https://traefik-ip/)
+      type: string
+    jwt-jwks-uri:
+      default: ""
+      description: JWKS URI for JWT validation (e.g. https://traefik-ip/oauth2/jwks)
+      type: string
 
 actions:
   get-url:

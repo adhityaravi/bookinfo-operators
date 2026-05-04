@@ -1,13 +1,16 @@
 [project]
 name = "bookinfo-productpage-k8s"
 version = "0.0"
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 dependencies = [
     "ops>=2.10",
     "pydantic",
     "httpx",
-    "lightkube"
+    "lightkube",
+    "charmed-service-mesh-helpers",
+    "lightkube-extensions",
+    "charmlibs-interfaces-istio-request-auth",
 ]
 
 [project.optional-dependencies]
@@ -30,7 +33,7 @@ dev = [
 [tool.ruff]
 line-length = 99
 extend-exclude = ["__pycache__", "*.egg_info"]
-target-version = "py38"
+target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "W", "F", "C", "N", "D", "I001"]
